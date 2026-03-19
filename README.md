@@ -1,4 +1,4 @@
-# GigInsura
+# GigInsura: AI-Powered Parametric Income Protection for Q-Commerce
 
 ## Team Members:
 UNIVERSITY NAME: SRM INSTITUTE OF SCIENCE AND TECHNOLOGY, DELHI - NCR CAMPUS, GHAZIABAD
