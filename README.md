@@ -1,5 +1,12 @@
 # GigInsura
 
+## Team Members:
+1. JOEL ROBERT LAKRA
+2. VAIBHAV VERMA
+3. SANJIT MATHUR
+4. REEYA SEJWAL
+5. SUMIT KUMAR MISHRA
+
 ## Project Overview
 - India's platform-based delivery partners which include those who work for platforms like Blinkit, Zepto, Swiggy Instamart, etc., are the backbone of our country's fast-paced digital economy.
 - However, the external disruptions like, extreme weather conditions, pollution and natural disasters can reduce their work hours and can cause them to lose about 20-30% of their monthly earnings.
