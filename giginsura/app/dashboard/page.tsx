@@ -57,55 +57,50 @@ export default function Dashboard() {
 
     useEffect(
         () => {
-            const loadDashboardData = async () => {
+            const initializeDashboard = async() => {
                 try {
-                    const { data: { user }, error: authError } = await supabase.auth.getUser();
+                    const { data: { session }, error: authError } = await supabase.auth.getSession();
 
-                    if (authError || !user) {
+                    if(authError || !session) {
                         router.push("/login");
                         return;
                     }
 
-                    const { data: userData, error: dbError } = await supabase
+                    const { data: profile, error: dbError } = await supabase
                         .from("users")
-                        .select("*")
-                        .eq("id", user.id)
-                        .maybeSingle();
+                        .select("delivery_zone, baseline_risk_score")
+                        .eq("id", session.user.id)
+                        .single();
+                    
+                    if(dbError) throw dbError;
 
-                    if (dbError) throw dbError;
+                    const actualZone = profile.delivery_zone || "Koramangala";
+                    const actualRisk = profile.baseline_risk_score || 1.0;
 
-                    if (!userData) {
-                        await supabase.auth.signOut();
-                        router.push("/login");
-                        return;
-                    }
-
-                    setProfile(userData as UserProfile);
+                    setZone(actualZone);
 
                     const res = await fetch("https://giginsura-engine.onrender.com/api/premium", {
                         method: "POST",
                         headers: {
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
                         },
                         body: JSON.stringify(
                             {
-                                delivery_zone: userData.delivery_zone || "Koramangala",
-                                baseline_risk_score: userData.baseline_risk_score || 1.0
+                                delivery_zone: actualZone,
+                                baseline_risk_score: actualRisk
                             }
-                        ),
+                        )
                     });
 
-                    const data = await res.json();
+                    if(!res.ok) throw new Error("Failed to fetch Premium");
 
-                    setPremiumData(data);
+                    const engineData = await res.json();
                 } catch (err) {
-                    console.error("Dashboard initialization failed:", err);
-                } finally {
-                    setLoading(false);
+                    console.error("Dashboard Initialization Failed:", err);
                 }
             };
 
-            loadDashboardData();
+            initializeDashboard();
         }, [router, supabase]
     );
 
