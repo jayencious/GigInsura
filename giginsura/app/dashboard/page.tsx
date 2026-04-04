@@ -26,7 +26,7 @@ interface RiskFactor {
     disruption_type: string;
     probability: number;
     severity_weight: number;
-};
+}
 
 interface PremiumData {
     delivery_zone: string;
@@ -34,7 +34,7 @@ interface PremiumData {
     calculated_weekly_premium_inr: number;
     live_telemetry: string;
     risk_factors_applied: RiskFactor[];
-};
+}
 
 interface UserProfile {
     id: string;
@@ -42,77 +42,83 @@ interface UserProfile {
     delivery_zone: string;
     baseline_risk_score: number;
     platform_id: string;
-};
+}
 
+interface ChartDataItem {
+    name: string;
+    Risk: number;
+    probability: number;
+    fill: string;
+}
 
 export default function Dashboard() {
     const router = useRouter();
     const supabase = createClient();
 
+    const [loading, setLoading] = useState<boolean>(true);
+    const [isActivating, setIsActivating] = useState<boolean>(false);
+    const [isProtected, setIsProtected] = useState<boolean>(false);
+
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [premiumData, setPremiumData] = useState<PremiumData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isActivating, setIsActivating] = useState(false);
-    const [isProtected, setIsProtected] = useState(false);
 
-    useEffect(
-        () => {
-            const initializeDashboard = async() => {
-                try {
-                    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    useEffect(() => {
+        const initializeDashboard = async () => {
+            try {
+                const { data: { session }, error: authError } = await supabase.auth.getSession();
 
-                    if(authError || !session) {
-                        router.push("/login");
-                        return;
-                    }
-
-                    const { data: profile, error: dbError } = await supabase
-                        .from("users")
-                        .select("delivery_zone, baseline_risk_score")
-                        .eq("id", session.user.id)
-                        .single();
-                    
-                    if(dbError) throw dbError;
-
-                    const actualZone = profile.delivery_zone || "Koramangala";
-                    const actualRisk = profile.baseline_risk_score || 1.0;
-
-                    setZone(actualZone);
-
-                    const res = await fetch("https://giginsura-engine.onrender.com/api/premium", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(
-                            {
-                                delivery_zone: actualZone,
-                                baseline_risk_score: actualRisk
-                            }
-                        )
-                    });
-
-                    if(!res.ok) throw new Error("Failed to fetch Premium");
-
-                    const engineData = await res.json();
-                } catch (err) {
-                    console.error("Dashboard Initialization Failed:", err);
+                if (authError || !session) {
+                    router.push("/login");
+                    return;
                 }
-            };
 
-            initializeDashboard();
-        }, [router, supabase]
-    );
+                const { data: dbProfile, error: dbError } = await supabase
+                    .from("users")
+                    .select("*")
+                    .eq("id", session.user.id)
+                    .single();
+
+                if (dbError) throw dbError;
+
+                const userProfile = dbProfile as UserProfile;
+                setProfile(userProfile);
+
+                const actualZone = userProfile.delivery_zone || "Koramangala";
+                const actualRisk = userProfile.baseline_risk_score || 1.0;
+
+                // Fetch AI Pricing
+                const res = await fetch("https://giginsura-engine.onrender.com/api/premium", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        delivery_zone: actualZone,
+                        baseline_risk_score: actualRisk
+                    })
+                });
+
+                if (!res.ok) throw new Error("Failed to fetch Premium");
+
+                const engineData: PremiumData = await res.json();
+                setPremiumData(engineData);
+
+            } catch (err) {
+                console.error("Dashboard Initialization Failed:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeDashboard();
+    }, [router, supabase]);
 
     const activatePolicy = async () => {
         setIsActivating(true);
-
-        setTimeout(
-            () => {
-                setIsProtected(true);
-                setIsActivating(false);
-            }, 2000
-        );
+        setTimeout(() => {
+            setIsProtected(true);
+            setIsActivating(false);
+        }, 2000);
     };
 
     const handleSignOut = async () => {
@@ -122,54 +128,36 @@ export default function Dashboard() {
 
     if (loading) {
         return (
-            <div
-                className="min-h-screen bg-slate-900 flex items-center justify-center"
-            >
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
                 <motion.div
-                    animate={
-                        { scale: [1, 1.2, 1], rotate: [0, 180, 360] }
-                    }
-                    transition={
-                        { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                    }
+                    animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full"
                 />
             </div>
         );
     }
 
-    const chartData = premiumData?.risk_factors_applied?.map(
-        (f) => (
-            {
-                name: f.disruption_type.replace('_', ' '),
-                Risk: Number((f.probability * f.severity_weight * 100).toFixed(0)),
-                probability: f.probability,
-                fill: (f.probability > 0.6) ? "#ef4444" : "#3b82f6"
-            }
-        )
+    const formattedChartData: ChartDataItem[] = premiumData?.risk_factors_applied?.map(
+        (f: RiskFactor) => ({
+            name: f.disruption_type.replace(/_/g, ' '),
+            Risk: Number((f.probability * f.severity_weight * 100).toFixed(0)),
+            probability: f.probability,
+            fill: f.probability > 0.6 ? "#ef4444" : "#3b82f6"
+        })
     ) || [];
 
     return (
-        <div
-            className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans"
-        >
-            <div
-                className="max-w-5xl mx-auto space-y-6"
-            >
+        <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans">
+            <div className="max-w-5xl mx-auto space-y-6">
                 {/* Header Section */}
-                <div
-                    className="flex justify-between items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl"
-                >
+                <div className="flex justify-between items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
                     <div>
-                        <h1
-                            className="text-3xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent"
-                        >
+                        <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                             GigInsura Command
                         </h1>
-                        <p
-                            className="text-slate-400 mt-1"
-                        >
-                            Welcome back, <span className="text-white font-medium">{profile?.name}</span>
+                        <p className="text-slate-400 mt-1">
+                            Welcome back, <span className="text-white font-medium">{profile?.name || "Rider"}</span>
                         </p>
                     </div>
                     <button
@@ -180,90 +168,56 @@ export default function Dashboard() {
                     </button>
                 </div>
 
-                <div
-                    className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-                >
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column: Core Status & Pricing */}
-                    <div
-                        className="lg:col-span-1 space-y-6"
-                    >
+                    <div className="lg:col-span-1 space-y-6">
                         {/* Telemetry Card */}
-                        <div
-                            className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg relative overflow-hidden"
-                        >
+                        <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                            <h3
-                                className="text-slate-400 font-semibold mb-4 flex items-center gap-2"
-                            >
+                            <h3 className="text-slate-400 font-semibold mb-4 flex items-center gap-2">
                                 <MapPin size={10} className="text-blue-400" /> Live Telemetry
                             </h3>
-                            <div
-                                className="space-y-3 relative z-10"
-                            >
-                                <div
-                                    className="flex justify-between items-center border-b border-slate-700 pb-2"
-                                >
+                            <div className="space-y-3 relative z-10">
+                                <div className="flex justify-between items-center border-b border-slate-700 pb-2">
                                     <span className="text-sm text-slate-400">Zone</span>
-                                    <span className="font-bold text-white">{profile?.delivery_zone}</span>
+                                    <span className="font-bold text-white">{profile?.delivery_zone || "PENDING..."}</span>
                                 </div>
-                                <div
-                                    className="flex justify-between items-center"
-                                >
+                                <div className="flex justify-between items-center">
                                     <span className="text-sm text-slate-400">Atmosphere</span>
-                                    <span className="flex items-center gap-2 font-bold text-emerald-400 text-sm">
-                                        <CloudLightning size={16} /> {premiumData?.live_telemetry || "Awaiting API"}
+                                    <span className="flex items-center gap-2 font-bold text-emerald-400 text-sm uppercase">
+                                        <CloudLightning size={16} /> {premiumData?.live_telemetry || "AWAITING API..."}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Premium Card */}
-                        <div
-                            className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 border border-blue-700 shadow-2xl relative overflow-hidden"
-                        >
+                        <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 border border-blue-700 shadow-2xl relative overflow-hidden">
                             <Activity className="absolute -bottom-4 -right-4 w-32 h-32 text-white opacity-5" />
-                            <h2
-                                className="text-blue-200 font-medium mb-2"
-                            >
+                            <h2 className="text-blue-200 font-medium mb-2">
                                 Dynamic Weekly Premium
                             </h2>
-                            <div
-                                className="flex items-baseline gap-2"
-                            >
-                                <span className="text-5xl font-black text-white">₹{premiumData?.calculated_weekly_premium_inr || "0.00"}</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-white">₹{premiumData?.calculated_weekly_premium_inr || "--"}</span>
                                 <span className="text-blue-300">/ week</span>
                             </div>
 
-                            <AnimatePresence
-                                mode="wait"
-                            >
+                            <AnimatePresence mode="wait">
                                 {!isProtected ? (
                                     <motion.button
                                         key="pay-btn"
-                                        initial={
-                                            { opacity: 0 }
-                                        }
-                                        animate={
-                                            { opacity: 1 }
-                                        }
-                                        exit={
-                                            { opacity: 0 }
-                                        }
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
                                         onClick={activatePolicy}
                                         disabled={isActivating || !premiumData}
                                         className="mt-6 w-full bg-white text-blue-900 font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all flex justify-center items-center gap-2 disabled:opacity-75"
                                     >
                                         {isActivating ? (
-                                            <span
-                                                className="flex items-center gap-2"
-                                            >
+                                            <span className="flex items-center gap-2">
                                                 <motion.div
-                                                    animate={
-                                                        { rotate: 360 }
-                                                    }
-                                                    transition={
-                                                        { repeat: Infinity, duration: 1 }
-                                                    }
+                                                    animate={{ rotate: 360 }}
+                                                    transition={{ repeat: Infinity, duration: 1 }}
                                                     className="w-5 h-5 border-2 border-blue-900 border-t-transparent rounded-full"
                                                 />
                                                 Securing Ledger...
@@ -275,12 +229,8 @@ export default function Dashboard() {
                                 ) : (
                                     <motion.div
                                         key="success-badge"
-                                        initial={
-                                            { scale: 0.8, opacity: 0 }
-                                        }
-                                        animate={
-                                            { scale: 1, opacity: 1 }
-                                        }
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
                                         className="mt-6 w-full bg-emerald-500/20 border border-emerald-500 text-emerald-300 font-bold py-4 rounded-xl flex justify-center items-center gap-2"
                                     >
                                         <ShieldCheck size={24} /> Coverage Active
@@ -291,48 +241,27 @@ export default function Dashboard() {
                     </div>
 
                     {/* Right Column: Analytics */}
-                    <div
-                        className="lg:col-span-2 space-y-6"
-                    >
-                        <div
-                            className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg h-full flex flex-col"
-                        >
-                            <div
-                                className="flex items-center justify-between mb-6"
-                            >
-                                <h3
-                                    className="text-lg font-bold text-white flex items-center gap-2"
-                                >
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg h-full flex flex-col">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                     <AlertTriangle size={20} className="text-amber-400" /> Risk Decomposition
                                 </h3>
                                 <span className="text-xs font-mono bg-slate-700 text-slate-300 py-1 px-3 rounded-full">v2 Engine</span>
                             </div>
 
-                            <p
-                                className="text-sm text-slate-400 mb-6"
-                            >
-                                Your premium is dynamically priced based on the following real-time environmental hazards affecting {profile?.delivery_zone}.
+                            <p className="text-sm text-slate-400 mb-6">
+                                Your premium is dynamically priced based on the following real-time environmental hazards affecting {profile?.delivery_zone || "your zone"}.
                             </p>
 
                             {/* Recharts Data Visualization */}
-                            <div
-                                className="w-full h-75 min-h-75 mt-4 relative"
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                >
+                            <div className="w-full h-75 min-h-75 mt-4 relative flex-grow">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
-                                        data={chartData}
-                                        margin={
-                                            { top: 10, right: 10, left: -20, bottom: 0 }
-                                        }
+                                        data={formattedChartData}
+                                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                                     >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#334155"
-                                            vertical={false}
-                                        />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                         <XAxis
                                             dataKey="name"
                                             stroke="#94a3b8"
@@ -347,27 +276,28 @@ export default function Dashboard() {
                                             axisLine={false}
                                         />
                                         <Tooltip
-                                            cursor={
-                                                { fill: "#1e293b" }
-                                            }
-                                            contentStyle={
-                                                { backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "8px", color: "#fff" }
-                                            }
-                                            formatter={(value: number | string | readonly (number | string)[] | undefined) => [`${value || 0} Impact Score`, `Risk Severity`]}
+                                            cursor={{ fill: "#1e293b" }}
+                                            contentStyle={{
+                                                backgroundColor: "#0f172a",
+                                                border: "1px solid #334155",
+                                                borderRadius: "8px",
+                                                color: "#fff"
+                                            }}
+                                            // Explicity matching Recharts' exact ValueType definition
+                                            formatter={(value: string | number | readonly (string | number)[] | undefined) => {
+                                                // If Recharts passes an array (for stacked charts), grab the first item. Otherwise, use the value.
+                                                const safeValue = Array.isArray(value) ? value[0] : value;
+                                                return [`${safeValue || 0} Impact Score`, "Risk Severity"];
+                                            }}
                                         />
-                                        <Bar
-                                            dataKey={"Risk"}
-                                            radius={[4, 4, 0, 0]}
-                                        />
+                                        <Bar dataKey="Risk" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     );
-};
+}
