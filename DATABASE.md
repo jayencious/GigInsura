@@ -17,3 +17,7 @@ The core legder tying authentication to the GigInsura risk engine.
 | `phone`               | `TEXT`    | `NOT NULL`                    | Contact number for SMS disruption alerts.                  |
 
 > **Security Note:** Read/Write operations on this table are locked down via PostgreSQL RLS policies. Riders can only `view their own data`, while Admins have elevated privileges to trigger platform-wide simulations.
+
+## Technical Architecture
+
+![alt text](<DB_ARCH.jpeg>)
