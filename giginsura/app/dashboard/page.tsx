@@ -82,7 +82,7 @@ export default function Dashboard() {
 
                     setProfile(userData as UserProfile);
 
-                    const res = await fetch("http://localhost:8000/api/premium", {
+                    const res = await fetch("https://giginsura-engine.onrender.com/api/premium", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
