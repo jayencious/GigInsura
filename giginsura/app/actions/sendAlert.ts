@@ -8,7 +8,7 @@ export async function sendDisasterAlert(zone: string, payout: number) {
     try {
         await resend.emails.send({
             from: "GigInsura Overlord <onboarding@resend.dev>",
-            to: "joel.official2565@gmail.com",
+            to: "<your-email-here@email.com>",
             subject: "🚨 URGENT: Smart Contract Payout Executed",
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #334155; border-radius: 10px; background-color: #0f172a; color: #f8fafc;">
