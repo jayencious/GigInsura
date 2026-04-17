@@ -21,6 +21,7 @@ import {
     Tooltip,
     ResponsiveContainer
 } from "recharts";
+import toast from "react-hot-toast";
 
 interface RiskFactor {
     disruption_type: string;
@@ -118,6 +119,7 @@ export default function Dashboard() {
         setTimeout(() => {
             setIsProtected(true);
             setIsActivating(false);
+            toast.success("Ledger Secured! Your shift is now protected.");
         }, 2000);
     };
 

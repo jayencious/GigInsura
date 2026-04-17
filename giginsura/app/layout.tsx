@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "react-hot-toast";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter(
+  { subsets: ["latin"] }
+);
 
 export const metadata: Metadata = {
-  title: "GigInsura",
-  description: "GigInsura - AI-powered parametric insurance platform for Q-commerce gig workers to safeguard them from the income losses from extreme weather conditions and other external disruptions. This project features a dynamic weekly pricing and automated payouts for the lost wages.",
+  title: "GigInsura: AI-Powered Enterprise Risk Protection",
+  description: "AI-Driven Parametric Insurance for the Gig Economy",
 };
 
 export default function RootLayout({
@@ -25,9 +20,22 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body
+        className={inter.className}
+      >
+        {children}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "#1e293b",
+              color: "#f8fafc",
+              border: "1px solid #334155",
+            },
+          }}
+        />
+      </body>
     </html>
   );
 }
