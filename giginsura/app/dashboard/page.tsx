@@ -10,7 +10,9 @@ import {
     CloudLightning,
     Activity,
     AlertTriangle,
-    LogOut
+    LogOut,
+    CheckCircle2,
+    Clock
 } from "lucide-react";
 import {
     BarChart,
@@ -299,6 +301,88 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
+
+                {/* Smart Contract Claims Ledger */}
+                <div
+                    className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg mt-6"
+                >
+                    <div
+                        className="flex items-center justify-between mb-6"
+                    >
+                        <h3
+                            className="text-lg font-bold text-white flex items-center gap-2"
+                        >
+                            <Activity size={20} className="text-blue-400" /> Smart Contract Ledger
+                        </h3>
+                        <button
+                            className="text-sm text-sky-400 hover:text-sky-300 font-medium"
+                        >
+                            View Full History
+                        </button>
+                    </div>
+
+                    <div
+                        className="overflow-x-auto"
+                    >
+                        <table
+                            className="w-full text-left text-sm"
+                        >
+                            <thead
+                                className="text-slate-400 border-b border-slate-700"
+                            >
+                                <tr>
+                                    <th className="pb-3 font-medium">Date</th>
+                                    <th className="pb-3 font-medium">Policy ID</th>
+                                    <th className="pb-3 font-medium">Trigger Event</th>
+                                    <th className="pb-3 font-medium">Status / Payout</th>
+                                </tr>
+                            </thead>
+                            <tbody
+                                className="text-slate-300"
+                            >
+                                <tr
+                                    className="border-b border-slate-700/50"
+                                >
+                                    <td className="py-4">Today</td>
+                                    <td className="py-4 font-mono text-slate-400">POL-892B-44</td>
+                                    <td className="py-4">No Anomalies Detected</td>
+                                    <td className="py-4 text-right">
+                                        <span
+                                            className="inline-flex items-center gap-1 5 bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/20"
+                                        >
+                                            <Clock
+                                                size={14}
+                                            /> ACTIVE MONITORING
+                                        </span>
+                                    </td>
+                                </tr>
+
+                                <tr className="border-b border-slate-700/50">
+                                    <td className="py-4">Oct 12, 2025</td>
+                                    <td className="py-4 font-mono text-slate-400">POL-711A-9X</td>
+                                    <td className="py-4 text-emerald-400">Category 3 Storm</td>
+                                    <td className="py-4 text-right">
+                                        <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20">
+                                            <CheckCircle2 size={14} /> ₹850 ROUTED TO UPI
+                                        </span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td className="py-4">Oct 05, 2025</td>
+                                    <td className="py-4 font-mono text-slate-400">POL-602C-11</td>
+                                    <td className="py-4">Clear Skies</td>
+                                    <td className="py-4 text-right">
+                                        <span className="inline-flex items-center gap-1.5 bg-slate-700 text-slate-300 px-3 py-1 rounded-full text-xs font-bold">
+                                            SHIFT COMPLETED
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
             </div>
         </div>
     );
